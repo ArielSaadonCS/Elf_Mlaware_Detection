@@ -1,0 +1,28 @@
+cd ~/Downloads/elf-malware-detection
+docker compose ps
+
+xdg-open frontend.html
+```
+
+או לחץ לחיצה כפולה על `frontend.html` בתיקייה.
+
+### שלב 3: השתמש במערכת
+
+1. **גרור קובץ ELF** לאזור הנקודות או לחץ "Select File"
+2. לחץ על כפתור **"🔍 Analyze"**
+3. המתן לתוצאה (כמה שניות)
+4. תראה:
+   - תוצאה סופית (Benign/Malicious)
+   - השוואה בין 3 ה-Pipelines
+   - טבלת דיוק המודלים
+
+### קבצים לבדיקה:
+
+**Benign (צפוי: ירוק ✅):**
+```
+~/Downloads/elf-malware-detection/elf_dataset/benign/
+```
+
+**Malware (צפוי: אדום 🦠):**
+```
+~/Downloads/elf-malware-detection/elf_dataset/malware/

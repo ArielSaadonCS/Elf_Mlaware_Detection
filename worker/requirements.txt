@@ -1,0 +1,6 @@
+redis
+scikit-learn
+joblib
+numpy
+pyelftools
+xgboost

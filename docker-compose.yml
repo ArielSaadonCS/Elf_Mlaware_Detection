@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: elf_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    container_name: elf_backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  worker:
+    build: ./worker
+    container_name: elf_worker
+    command: python worker.py
+    volumes:
+      - ./worker:/app
+      - ./models:/app/models
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis

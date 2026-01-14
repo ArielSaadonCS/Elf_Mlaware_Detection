@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ ELF Malware Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div class="p-8 max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-white mb-2">🛡️ ELF Malware Detector</h1>
+            <p class="text-slate-400">Static Analysis using Machine Learning - 3 Pipeline Comparison</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-slate-800 rounded-2xl p-8 shadow-2xl mb-8 border border-slate-700">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-xl p-10 text-center transition-all">
+                <div class="text-6xl mb-4">📁</div>
+                <p class="text-slate-300 mb-4">Drag & drop an ELF file here, or click to select</p>
+                <input type="file" id="file-input" class="hidden">
+                <label for="file-input" class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
+                    Select File
+                </label>
+            </div>
+
+            <div id="file-info" class="hidden mt-6 p-4 bg-slate-700 rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">📄</span>
+                    <div>
+                        <p id="file-name" class="text-white font-medium"></p>
+                        <p id="file-size" class="text-slate-400 text-sm"></p>
+                    </div>
+                </div>
+                <button id="analyze-btn" class="px-6 py-3 rounded-lg font-medium bg-green-600 hover:bg-green-700 text-white transition-all">
+                    🔍 Analyze
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden bg-slate-800 rounded-2xl p-8 border border-slate-700 text-center">
+            <svg class="animate-spin h-12 w-12 mx-auto text-blue-500 mb-4" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-slate-300">Analyzing file...</p>
+        </div>
+
+        <!-- Error -->
+        <div id="error" class="hidden bg-red-900/50 border border-red-700 rounded-xl p-6 mb-8">
+            <p class="text-red-300">❌ Error: <span id="error-message"></span></p>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden space-y-6">
+            <!-- Final Result -->
+            <div id="final-result" class="rounded-2xl p-8 border-2">
+                <div class="text-center">
+                    <div id="result-icon" class="text-6xl mb-4"></div>
+                    <h2 id="result-label" class="text-3xl font-bold mb-2"></h2>
+                    <p class="text-slate-300">
+                        Confidence: <span id="result-confidence" class="font-bold"></span>
+                    </p>
+                    <p class="text-slate-400 text-sm mt-2">
+                        Best Model: <span id="result-model"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pipeline Comparison -->
+            <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700">
+                <h3 class="text-xl font-bold text-white mb-6">📊 Pipeline Comparison</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Pipeline A -->
+                    <div class="bg-slate-700 rounded-xl p-5">
+                        <h4 class="text-blue-400 font-bold mb-4">Pipeline A</h4>
+                        <p class="text-slate-400 text-sm mb-4">Structural (ELF-Miner)</p>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">RF:</span>
+                                <span id="pipeline-a-rf" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">XGB:</span>
+                                <span id="pipeline-a-xgb" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline B -->
+                    <div class="bg-slate-700 rounded-xl p-5">
+                        <h4 class="text-purple-400 font-bold mb-4">Pipeline B</h4>
+                        <p class="text-slate-400 text-sm mb-4">Statistical (Guesmi)</p>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">RF:</span>
+                                <span id="pipeline-b-rf" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">XGB:</span>
+                                <span id="pipeline-b-xgb" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline C -->
+                    <div class="bg-slate-700 rounded-xl p-5 ring-2 ring-yellow-500">
+                        <h4 class="text-yellow-400 font-bold mb-4">Pipeline C ⭐</h4>
+                        <p class="text-slate-400 text-sm mb-4">Hybrid (Our Improvement)</p>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">RF:</span>
+                                <span id="pipeline-c-rf" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">XGB:</span>
+                                <span id="pipeline-c-xgb" class="px-2 py-1 rounded text-sm font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accuracy Table -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h3 class="text-lg font-bold text-white mb-4">📈 Model Accuracy (Training Results)</h3>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-600">
+                            <th class="text-left py-2">Pipeline</th>
+                            <th class="text-center py-2">Model</th>
+                            <th class="text-center py-2">Accuracy</th>
+                            <th class="text-center py-2">F1-Score</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-white">
+                        <tr class="border-b border-slate-700">
+                            <td class="py-2">A (Structural)</td>
+                            <td class="text-center">RF</td>
+                            <td class="text-center text-green-400">99.47%</td>
+                            <td class="text-center">0.9944</td>
+                        </tr>
+                        <tr class="border-b border-slate-700">
+                            <td class="py-2">A (Structural)</td>
+                            <td class="text-center">XGB</td>
+                            <td class="text-center text-green-400">99.47%</td>
+                            <td class="text-center">0.9944</td>
+                        </tr>
+                        <tr class="border-b border-slate-700">
+                            <td class="py-2">B (Statistical)</td>
+                            <td class="text-center">RF</td>
+                            <td class="text-center text-yellow-400">97.34%</td>
+                            <td class="text-center">0.9718</td>
+                        </tr>
+                        <tr class="border-b border-slate-700">
+                            <td class="py-2">B (Statistical)</td>
+                            <td class="text-center">XGB</td>
+                            <td class="text-center text-yellow-400">97.87%</td>
+                            <td class="text-center">0.9775</td>
+                        </tr>
+                        <tr class="border-b border-slate-700 bg-yellow-900/20">
+                            <td class="py-2 font-bold">C (Hybrid) ⭐</td>
+                            <td class="text-center">RF</td>
+                            <td class="text-center text-green-400">98.94%</td>
+                            <td class="text-center">0.9888</td>
+                        </tr>
+                        <tr class="bg-yellow-900/20">
+                            <td class="py-2 font-bold">C (Hybrid) ⭐</td>
+                            <td class="text-center font-bold">XGB</td>
+                            <td class="text-center text-green-400 font-bold">100%</td>
+                            <td class="text-center font-bold">1.0000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-10 text-slate-500 text-sm">
+            <p>ELF Malware Detection System - Course Project</p>
+            <p>Methods for Detecting Cyber Attacks in Machine Learning</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let selectedFile = null;
+
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const errorMessage = document.getElementById('error-message');
+        const results = document.getElementById('results');
+
+        // File Selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Drag & Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+            if (e.dataTransfer.files[0]) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.remove('hidden');
+            results.classList.add('hidden');
+            error.classList.add('hidden');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Analyze
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            results.classList.add('hidden');
+            analyzeBtn.disabled = true;
+
+            try {
+                // Upload
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const uploadResponse = await fetch(`${API_URL}/analyze`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!uploadResponse.ok) throw new Error('Failed to upload file');
+
+                const { job_id } = await uploadResponse.json();
+
+                // Poll for result
+                let attempts = 0;
+                while (attempts < 30) {
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    const resultResponse = await fetch(`${API_URL}/result/${job_id}`);
+                    const data = await resultResponse.json();
+
+                    if (data.status === 'done') {
+                        displayResults(data.result);
+                        break;
+                    }
+                    attempts++;
+                }
+
+                if (attempts >= 30) throw new Error('Analysis timeout');
+
+            } catch (err) {
+                errorMessage.textContent = err.message;
+                error.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(result) {
+            const finalLabel = JSON.parse(result.final_label);
+            const finalConfidence = parseFloat(result.final_confidence);
+            const bestModel = JSON.parse(result.best_model);
+            const pipelines = JSON.parse(result.pipelines);
+
+            // Final Result
+            const finalResult = document.getElementById('final-result');
+            const resultIcon = document.getElementById('result-icon');
+            const resultLabel = document.getElementById('result-label');
+            const resultConfidence = document.getElementById('result-confidence');
+            const resultModel = document.getElementById('result-model');
+
+            if (finalLabel === 'malicious') {
+                finalResult.className = 'rounded-2xl p-8 border-2 bg-red-900/30 border-red-600';
+                resultIcon.textContent = '🦠';
+                resultLabel.textContent = 'MALICIOUS';
+                resultLabel.className = 'text-3xl font-bold mb-2 text-red-400';
+            } else {
+                finalResult.className = 'rounded-2xl p-8 border-2 bg-green-900/30 border-green-600';
+                resultIcon.textContent = '✅';
+                resultLabel.textContent = 'BENIGN';
+                resultLabel.className = 'text-3xl font-bold mb-2 text-green-400';
+            }
+
+            resultConfidence.textContent = (finalConfidence * 100).toFixed(2) + '%';
+            resultModel.textContent = bestModel;
+
+            // Pipeline Results
+            setLabelBadge('pipeline-a-rf', pipelines.A_structural.rf);
+            setLabelBadge('pipeline-a-xgb', pipelines.A_structural.xgb);
+            setLabelBadge('pipeline-b-rf', pipelines.B_statistical.rf);
+            setLabelBadge('pipeline-b-xgb', pipelines.B_statistical.xgb);
+            setLabelBadge('pipeline-c-rf', pipelines.C_hybrid.rf);
+            setLabelBadge('pipeline-c-xgb', pipelines.C_hybrid.xgb);
+
+            results.classList.remove('hidden');
+        }
+
+        function setLabelBadge(elementId, data) {
+            const el = document.getElementById(elementId);
+            const label = data.label;
+            const confidence = (data.confidence * 100).toFixed(1);
+
+            el.textContent = `${label} (${confidence}%)`;
+
+            if (label === 'malicious') {
+                el.className = 'px-2 py-1 rounded text-sm font-medium bg-red-100 text-red-800';
+            } else {
+                el.className = 'px-2 py-1 rounded text-sm font-medium bg-green-100 text-green-800';
+            }
+        }
+    </script>
+</body>
+</html>
