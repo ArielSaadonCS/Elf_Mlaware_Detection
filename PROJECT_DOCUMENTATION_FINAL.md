@@ -148,7 +148,6 @@ elf-malware-detection/
 │
 ├── build_features.py      # חילוץ פיצ'רים מה-dataset
 ├── train_models.py        # אימון והשוואת מודלים
-├── check_overfitting.py   # בדיקת overfitting עם CV
 │
 ├── models/                # המודלים המאומנים
 │   ├── pipeline_a_rf.pkl
