@@ -6,17 +6,10 @@ pipelines (A - structural features, B - statistical features, C - hybrid feature
 It evaluates each trained model on a held-out test set, prints metrics,
 saves models to disk, and writes a comparison CSV.
 
-This file contains detailed inline comments for every line / small block so that
-each statement's behavior and purpose is explicit.
-
-Usage:
-    python train_models.py
-
 Notes:
     - Requires features CSV files to exist for the pipelines (features_pipeline_a.csv, etc.)
     - Saves trained model files under the ./models directory and writes model_comparison.csv.
 """
-# Standard imports
 import pandas as pd                       # pandas: data loading, DataFrame manipulation
 import numpy as np                        # numpy: numeric operations (not heavily used here but commonly available)
 import joblib                             # joblib: save/load scikit-learn compatible models
